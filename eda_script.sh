@@ -1,1 +1,1 @@
-python read_file.py ./court_data/all/all
+python concat_file.py ./court_data/all/all
