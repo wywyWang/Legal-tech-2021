@@ -67,6 +67,18 @@ def concat_file(filename):
     df_total.to_csv('eda_concat.csv')
 
 
+def EDA(filename):
+    df = dt.fread(filename).to_pandas()
+
+    # print(df['reason'].value_counts(normalize=False))
+    # print(df['type'].value_counts(normalize=True))
+    # print(df['court'].value_counts(normalize=True))
+
+    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
+    print(df['year'].value_counts(normalize=True))
+
+
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
+    EDA(sys.argv[1])
