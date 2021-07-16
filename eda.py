@@ -1,5 +1,7 @@
 import datatable as dt
 from tqdm import tqdm
+from collections import Counter
+from ast import literal_eval
 import sys
 import os
 
@@ -67,15 +69,34 @@ def concat_file(filename):
     df_total.to_csv('eda_concat.csv')
 
 
+def print_value_counts(data, column, normalize=True):
+    counts = data[column].value_counts(normalize=normalize)
+    filename = column + '_count.csv'
+    counts.to_csv(filename, index=True, header=True)
+
+
 def EDA(filename):
     df = dt.fread(filename).to_pandas()
 
-    # print(df['reason'].value_counts(normalize=False))
-    # print(df['type'].value_counts(normalize=True))
-    # print(df['court'].value_counts(normalize=True))
+    print_value_counts(df, 'reason', normalize=False)
+    print_value_counts(df, 'type', normalize=False)
+    print_value_counts(df, 'court', normalize=False)
+    # print_value_counts(df, 'historyHash', normalize=False)
 
     df['year'] = df['date'].apply(lambda x: x.split('-')[0])
-    print(df['year'].value_counts(normalize=True))
+    print_value_counts(df, 'year', normalize=True)
+
+    # # parse related issues
+    # law_counter = Counter()
+    # for idx in tqdm(range(len(df))):
+    #     related_issues = literal_eval(df['relatedIssues'][idx])
+    #     for law in related_issues:
+    #         law_counter.update([law['lawName']])
+
+    # with open('law_count', 'w') as result_log:
+    #     result_log.write(str(len(law_counter)))
+    #     result_log.write('\n')
+    #     result_log.write(str(law_counter))
 
 
 if __name__ == '__main__':
