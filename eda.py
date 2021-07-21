@@ -1,4 +1,5 @@
 import datatable as dt
+import pandas as pd
 from tqdm import tqdm
 from collections import Counter
 from ast import literal_eval
@@ -69,6 +70,72 @@ def concat_file(filename):
     df_total.to_csv('eda_concat.csv')
 
 
+def filter_law(filename):
+    df = dt.fread(filename).to_pandas()
+    print(df.shape)
+
+    # filter unused law data
+    criminal_law_filter = ['185-1 2', '185-1 4', '185-2 3', '187-3 2', '226', '226-1', '272 1', '278 2', '286 3', '286 4', '328 3', '332 2', '333 3', '334', '347 2', '348']
+    other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
+    keep_index = []
+    for idx in tqdm(range(len(df))):
+        related_issues = literal_eval(df['relatedIssues'][idx])
+        for law in related_issues:
+            split_issues = law['issueRef'].split(' ')
+            if '刑法' in law['lawName']:
+                for candidate in criminal_law_filter:
+                    split_candidate = candidate.split(' ')
+                    if split_candidate[0] == split_issues[0]:
+                        # only one
+                        if len(split_candidate) == 1:
+                            keep_index.append(idx)
+                            break
+                        elif len(split_candidate) == 2:
+                            if len(split_issues) < 2:
+                                continue
+                            if split_candidate[1] == split_issues[1]:
+                                keep_index.append(idx)
+                                break
+                            else:
+                                pass
+                        else:
+                            # maximum of filter's length  is 2
+                            raise NotImplementedError
+            elif law['lawName'] in other_law_filter.keys():
+                if law['lawName'] == '民用航空法':
+                    for candidate in other_law_filter[law['lawName']]:
+                        split_candidate = candidate.split(' ')
+                        if split_candidate[0] == split_issues[0] and split_candidate[1] == split_issues[1]:
+                            keep_index.append(idx)
+                            break
+                        else:
+                            pass
+                else:
+                    split_candidate = other_law_filter[law['lawName']].split(' ')
+                    if split_candidate[0] == split_issues[0]:
+                        if len(split_candidate) == 1:
+                            keep_index.append(idx)
+                            break
+                        elif len(split_candidate) == 2:
+                            if len(split_issues) < 2:
+                                continue
+                            if split_candidate[1] == split_issues[1]:
+                                keep_index.append(idx)
+                                break
+                            else:
+                                pass
+                        else:
+                            # maximum of filter's length  is 2
+                            raise NotImplementedError
+    
+    # keep_data = pd.concat(keep_data, ignore_index=True, sort=False)
+    print(len(keep_index), len(set(keep_index)))
+    keep_index = set(keep_index)                    # avoid count same index
+    df = df.loc[keep_index].reset_index(drop=True)
+    print(df.shape)
+    df.to_csv('filter_concat.csv', index=False)
+
+
 def print_value_counts(data, column, normalize=True):
     counts = data[column].value_counts(normalize=normalize)
     filename = column + '_count.csv'
@@ -78,13 +145,15 @@ def print_value_counts(data, column, normalize=True):
 def EDA(filename):
     df = dt.fread(filename).to_pandas()
 
-    print_value_counts(df, 'reason', normalize=False)
-    print_value_counts(df, 'type', normalize=False)
-    print_value_counts(df, 'court', normalize=False)
+    # print_value_counts(df, 'reason', normalize=False)
+    # print_value_counts(df, 'type', normalize=False)
+    # print_value_counts(df, 'court', normalize=False)
     # print_value_counts(df, 'historyHash', normalize=False)
 
-    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
-    print_value_counts(df, 'year', normalize=True)
+    # print(df[df['historyHash'] == '5eac0e53077c752810719a11'])
+
+    # df['year'] = df['date'].apply(lambda x: x.split('-')[0])
+    # print_value_counts(df, 'year', normalize=True)
 
     # # parse related issues
     # law_counter = Counter()
@@ -102,4 +171,5 @@ def EDA(filename):
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
-    EDA(sys.argv[1])
+    filter_law(sys.argv[1])
+    # EDA(sys.argv[1])
