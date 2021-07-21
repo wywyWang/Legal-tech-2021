@@ -145,31 +145,29 @@ def print_value_counts(data, column, normalize=True):
 def EDA(filename):
     df = dt.fread(filename).to_pandas()
 
-    # print_value_counts(df, 'reason', normalize=False)
-    # print_value_counts(df, 'type', normalize=False)
-    # print_value_counts(df, 'court', normalize=False)
-    # print_value_counts(df, 'historyHash', normalize=False)
+    print_value_counts(df, 'reason', normalize=False)
+    print_value_counts(df, 'type', normalize=False)
+    print_value_counts(df, 'court', normalize=False)
+    print_value_counts(df, 'historyHash', normalize=False)
 
-    # print(df[df['historyHash'] == '5eac0e53077c752810719a11'])
+    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
+    print_value_counts(df, 'year', normalize=True)
 
-    # df['year'] = df['date'].apply(lambda x: x.split('-')[0])
-    # print_value_counts(df, 'year', normalize=True)
+    # parse related issues
+    law_counter = Counter()
+    for idx in tqdm(range(len(df))):
+        related_issues = literal_eval(df['relatedIssues'][idx])
+        for law in related_issues:
+            law_counter.update([law['lawName']])
 
-    # # parse related issues
-    # law_counter = Counter()
-    # for idx in tqdm(range(len(df))):
-    #     related_issues = literal_eval(df['relatedIssues'][idx])
-    #     for law in related_issues:
-    #         law_counter.update([law['lawName']])
-
-    # with open('law_count', 'w') as result_log:
-    #     result_log.write(str(len(law_counter)))
-    #     result_log.write('\n')
-    #     result_log.write(str(law_counter))
+    with open('law_count', 'w') as result_log:
+        result_log.write(str(len(law_counter)))
+        result_log.write('\n')
+        result_log.write(str(law_counter))
 
 
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
-    filter_law(sys.argv[1])
-    # EDA(sys.argv[1])
+    # filter_law(sys.argv[1])
+    EDA(sys.argv[1])
