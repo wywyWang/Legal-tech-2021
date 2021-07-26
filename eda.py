@@ -16,11 +16,16 @@ def read_csv(folder):
     Returns:
         List: available csv
     """
-    csv_paths = [(f, os.path.join(folder, f)) for f in os.listdir(folder) if f.endswith('.csv') and '地方法院_刑事' in f]
+    csv_paths = [(f, os.path.join(folder, f)) for f in os.listdir(folder) if f.endswith('.csv') and '刑事' in f and '司法院－刑事補償_刑事' not in f]
     return csv_paths
 
 
 def process_file(filename):
+    """Remove some unused text to reduce file size
+
+    Args:
+        filename ([type]): folder of concat data
+    """
     csv_paths = read_csv(filename)
 
     all_columns = {
@@ -30,6 +35,7 @@ def process_file(filename):
 
     data_len = 0
     for csv_name, csv_path in tqdm(csv_paths):
+        print(csv_name)
         processed_name = 'no_text_data/' + csv_name
         df = dt.fread(csv_path)
 
@@ -85,6 +91,7 @@ def filter_law(filename):
         '328 3', '332 2', '333 3', '334', '347 2', '348']
     other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
     keep_index = []
+    remove_index = []
     for idx in tqdm(range(len(df))):
         # we only need 判決
         if df['type'][idx] == '裁定':
@@ -93,7 +100,10 @@ def filter_law(filename):
         related_issues = literal_eval(df['relatedIssues'][idx])
         for law in related_issues:
             split_issues = law['issueRef'].split(' ')
-            if '刑法' in law['lawName']:
+            if '毒品危害防制條例' in law['lawName']:
+                remove_index.append(idx)
+                break
+            if '刑法' in law['lawName'] and '訴訟法' not in law['lawName']:
                 for candidate in criminal_law_filter:
                     split_candidate = candidate.split(' ')
                     if split_candidate[0] == split_issues[0]:
@@ -140,8 +150,10 @@ def filter_law(filename):
                             raise NotImplementedError
     
     # keep_data = pd.concat(keep_data, ignore_index=True, sort=False)
-    print(len(keep_index), len(set(keep_index)))
+    print(len(keep_index), len(set(keep_index)), len(remove_index), len(set(remove_index)))
     keep_index = set(keep_index)                    # avoid count same index
+    remove_index = set(remove_index)
+    keep_index = [keep for keep in keep_index if keep not in remove_index]
     df = df.loc[keep_index].reset_index(drop=True)
     print(df.shape)
     df.to_csv('filter_concat.csv', index=False)
@@ -180,5 +192,5 @@ def EDA(filename):
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
-    filter_law(sys.argv[1])
-    # EDA(sys.argv[1])
+    # filter_law(sys.argv[1])
+    EDA(sys.argv[1])
