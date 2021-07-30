@@ -5,6 +5,7 @@ from collections import Counter
 from ast import literal_eval
 import sys
 import os
+from datetime import datetime
 
 
 def read_csv(folder):
@@ -92,31 +93,34 @@ def filter_law(filename):
     other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
     keep_index = []
     remove_index = []
+    new_related_issues_all = []
     for idx in tqdm(range(len(df))):
         # we only need 判決
         if df['type'][idx] == '裁定':
+            new_related_issues_all.append([])
             continue
 
         related_issues = literal_eval(df['relatedIssues'][idx])
+        new_related_issues = []
         for law in related_issues:
+            if '訴訟法' not in law['lawName']:
+                new_related_issues.append(law)
+
             split_issues = law['issueRef'].split(' ')
             if '毒品危害防制條例' in law['lawName']:
                 remove_index.append(idx)
-                break
-            if '刑法' in law['lawName'] and '訴訟法' not in law['lawName']:
+            if '刑法' in law['lawName']:
                 for candidate in criminal_law_filter:
                     split_candidate = candidate.split(' ')
                     if split_candidate[0] == split_issues[0]:
                         # only one
                         if len(split_candidate) == 1:
                             keep_index.append(idx)
-                            break
                         elif len(split_candidate) == 2:
                             if len(split_issues) < 2:
                                 continue
                             if split_candidate[1] == split_issues[1]:
                                 keep_index.append(idx)
-                                break
                             else:
                                 pass
                         else:
@@ -128,7 +132,6 @@ def filter_law(filename):
                         split_candidate = candidate.split(' ')
                         if split_candidate[0] == split_issues[0] and split_candidate[1] == split_issues[1]:
                             keep_index.append(idx)
-                            break
                         else:
                             pass
                 else:
@@ -136,25 +139,49 @@ def filter_law(filename):
                     if split_candidate[0] == split_issues[0]:
                         if len(split_candidate) == 1:
                             keep_index.append(idx)
-                            break
                         elif len(split_candidate) == 2:
                             if len(split_issues) < 2:
                                 continue
                             if split_candidate[1] == split_issues[1]:
                                 keep_index.append(idx)
-                                break
                             else:
                                 pass
                         else:
                             # maximum of filter's length  is 2
                             raise NotImplementedError
-    
-    # keep_data = pd.concat(keep_data, ignore_index=True, sort=False)
+        new_related_issues_all.append(new_related_issues)
+
+    df['new_relatedIssues'] = new_related_issues_all
+    del df['relatedIssues']
     print(len(keep_index), len(set(keep_index)), len(remove_index), len(set(remove_index)))
     keep_index = set(keep_index)                    # avoid count same index
     remove_index = set(remove_index)
     keep_index = [keep for keep in keep_index if keep not in remove_index]
     df = df.loc[keep_index].reset_index(drop=True)
+    print(df.shape)
+    df.to_csv('filter_concat_new.csv', index=False)
+
+
+def filter_data(filename):
+    df = dt.fread(filename).to_pandas()
+    history_file = open('historyHash_count.csv', 'r').readlines()
+    print(df.shape)
+
+    def transform_time(time):
+        present = datetime.now()
+        return present - datetime.strptime(time.split('T')[0], '%Y-%m-%d')
+
+    # skip header and first empty row
+    for i in tqdm(range(2, len(history_file))):
+        id, count = history_file[i].strip().split(',')
+        
+        match_rows = df[df['historyHash'] == id].copy()
+        match_rows['time_distance'] = match_rows['date'].apply(lambda x: transform_time(x))
+        keep_index = match_rows['time_distance'].idxmin()
+        deleted_indexes = match_rows[match_rows['time_distance'] != match_rows['time_distance'].min()].index
+
+        df = df.drop(deleted_indexes).reset_index(drop=True)
+    
     print(df.shape)
     df.to_csv('filter_concat.csv', index=False)
 
@@ -193,4 +220,5 @@ if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
     # filter_law(sys.argv[1])
+    # filter_data(sys.argv[1])
     EDA(sys.argv[1])
