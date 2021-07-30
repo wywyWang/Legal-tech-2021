@@ -35,7 +35,7 @@ def rule_based(data, query):
                     break
 
     matches = data.loc[match_indexes]
-    matches.to_csv('results/rule_based.csv', index=False)
+    matches.to_csv('results/rule_based_{}_{}.csv'.format(query['reason'], query['issue']), index=False)
 
 
 
