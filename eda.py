@@ -17,7 +17,7 @@ def read_csv(folder):
     Returns:
         List: available csv
     """
-    csv_paths = [(f, os.path.join(folder, f)) for f in os.listdir(folder) if f.endswith('.csv') and '刑事' in f and '司法院－刑事補償_刑事' not in f]
+    csv_paths = [(f, os.path.join(folder, f)) for f in os.listdir(folder) if f.endswith('.csv') and '刑事' in f and '司法院－刑事補償_刑事' not in f and '最高' not in f]
     return csv_paths
 
 
@@ -47,7 +47,7 @@ def process_file(filename):
             del df[:, 'attachments']
 
         # remove all text
-        del df[:, ['judgement', 'opinion']]
+        del df[:, ['opinion']]
 
         data_len += df.shape[0]
         df.to_csv(processed_name)
@@ -90,7 +90,8 @@ def filter_law(filename):
         '332 1', '333 3', '334 1', '334 2', '347 2', '348 1', '348 2', '353 2',
         '185-1 2', '185-1 4', '185-2 3', '187-3 2', '226', '226-1', '272 1', '278 2', '286 3', '286 4', 
         '328 3', '332 2', '333 3', '334', '347 2', '348']
-    other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
+    # other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
+    other_law_filter = {}
     keep_index = []
     remove_index = []
     new_related_issues_all = []
@@ -218,7 +219,7 @@ def EDA(filename):
 
 if __name__ == '__main__':
     # process_file(sys.argv[1])
-    # concat_file(sys.argv[1])
+    concat_file(sys.argv[1])
     # filter_law(sys.argv[1])
     # filter_data(sys.argv[1])
-    EDA(sys.argv[1])
+    # EDA(sys.argv[1])
