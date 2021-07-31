@@ -5,6 +5,7 @@ from collections import Counter
 from ast import literal_eval
 import sys
 import os
+import re
 from datetime import datetime
 
 
@@ -65,20 +66,22 @@ def concat_file(filename):
     data_len = 0
     df_total = None
     for csv_name, csv_path in tqdm(csv_paths):
-        df = dt.fread(csv_path)
+        print(csv_name)
+        df = dt.fread(csv_path).to_pandas()
         data_len += df.shape[0]
 
+        process_df = filter_law(df)
+
         if df_total is None:
-            df_total = df.copy()
+            df_total = process_df.copy()
         else:
-            df_total.rbind(df)
+            df_total = pd.concat([df_total, process_df], ignore_index=True)
 
     print("Total data count: {}".format(data_len))
     df_total.to_csv('eda_concat.csv')
 
 
-def filter_law(filename):
-    df = dt.fread(filename).to_pandas()
+def filter_law(df):
     print(df.shape)
 
     # filter unused law data
@@ -88,21 +91,41 @@ def filter_law(filename):
         '190-1 4', '191-1 3', '226 1', '271 1', '272', '273 1', '274 1', '275 1', '277 2', '278', '279',
         '282', '283', '286 3', '286 4', '290 2', '291 2', '293 2', '294 2', '302 2', '325 2', '328 3',
         '332 1', '333 3', '334 1', '334 2', '347 2', '348 1', '348 2', '353 2',
-        '185-1 2', '185-1 4', '185-2 3', '187-3 2', '226', '226-1', '272 1', '278 2', '286 3', '286 4', 
-        '328 3', '332 2', '333 3', '334', '347 2', '348']
-    # other_law_filter = {'懲治走私條例': '4', '藥事法': '82 2', '兒童及少年性剝削防制條例': '37', '民用航空法': ['101 3', '110 2']}
-    other_law_filter = {}
-    keep_index = []
-    remove_index = []
+        '226', '226-1', '272 1', '278 2', 
+        '332 2', '333 3', '334', '348']
+
+    criminal_law_section = \
+    {
+        '125 2': '瀆職罪', '126 2': '瀆職罪', '135 2': '妨害公務罪', '136 2': '妨害公務罪', '177 2': '公共危險罪', 
+        '185 2': '公共危險罪', '185-1 2': '公共危險罪', '185-1 4': '公共危險罪', '185-2 3': '公共危險罪', '185-3 2': '公共危險罪',
+        '185-3 3': '公共危險罪', '185-4': '公共危險罪', '186-1 2': '公共危險罪', '187-2 2': '公共危險罪', '187-3 2': '公共危險罪', 
+        '189 2': '公共危險罪', '189-2 2': '公共危險罪', '190 2': '公共危險罪', '190-1 3': '公共危險罪','190-1 4': '公共危險罪', 
+        '191-1 3': '公共危險罪', '226 1': '妨害性自主罪', '271 1': '殺人罪', '272': '殺人罪', '273 1': '殺人罪', '274 1': '殺人罪', 
+        '275 1': '殺人罪', '277 2': '傷害罪', '278': '傷害罪', '279': '傷害罪','282': '傷害罪', 
+        '283': '傷害罪', '286 3': '傷害罪', '286 4': '傷害罪', '290 2': '墮胎罪', '291 2': '墮胎罪', 
+        '293 2': '遺棄罪', '294 2': '遺棄罪', '302 2': '妨害自由罪', '325 2': '搶奪強盜及海盜罪', '328 3': '搶奪強盜及海盜罪',
+        '332 1': '搶奪強盜及海盜罪', '333 3': '搶奪強盜及海盜罪', '334 1': '搶奪強盜及海盜罪', '334 2': '搶奪強盜及海盜罪', '347 2': '恐嚇及擄人勒贖罪', 
+        '348 1': '恐嚇及擄人勒贖罪', '348 2': '恐嚇及擄人勒贖罪', '353 2': '毀棄損壞罪', 
+        '226': '妨害性自主罪', '226-1': '妨害性自主罪', '272 1': '殺人罪', 
+        '278 2': '傷害罪', '332 2': '搶奪強盜及海盜罪', 
+        '333 3': '搶奪強盜及海盜罪', '334': '搶奪強盜及海盜罪', '348': '恐嚇及擄人勒贖罪'
+    }
+
+    keep_index, remove_index = [], []
     new_related_issues_all = []
+    new_match_reason_all = []
+    # truth_all = []
     for idx in tqdm(range(len(df))):
         # we only need 判決
         if df['type'][idx] == '裁定':
             new_related_issues_all.append([])
+            new_match_reason_all.append([])
+            # truth_all.append([])
             continue
 
         related_issues = literal_eval(df['relatedIssues'][idx])
-        new_related_issues = []
+        new_related_issues, new_match_reason, truth = [], [], []
+        need_to_process_text_flag = 0
         for law in related_issues:
             if '訴訟法' not in law['lawName']:
                 new_related_issues.append(law)
@@ -117,50 +140,65 @@ def filter_law(filename):
                         # only one
                         if len(split_candidate) == 1:
                             keep_index.append(idx)
+                            new_match_reason.append(criminal_law_section[candidate])
+                            need_to_process_text_flag = 1
                         elif len(split_candidate) == 2:
                             if len(split_issues) < 2:
                                 continue
                             if split_candidate[1] == split_issues[1]:
                                 keep_index.append(idx)
+                                new_match_reason.append(criminal_law_section[candidate])
+                                need_to_process_text_flag = 1
                             else:
                                 pass
                         else:
                             # maximum of filter's length  is 2
                             raise NotImplementedError
-            elif law['lawName'] in other_law_filter.keys():
-                if law['lawName'] == '民用航空法':
-                    for candidate in other_law_filter[law['lawName']]:
-                        split_candidate = candidate.split(' ')
-                        if split_candidate[0] == split_issues[0] and split_candidate[1] == split_issues[1]:
-                            keep_index.append(idx)
-                        else:
-                            pass
-                else:
-                    split_candidate = other_law_filter[law['lawName']].split(' ')
-                    if split_candidate[0] == split_issues[0]:
-                        if len(split_candidate) == 1:
-                            keep_index.append(idx)
-                        elif len(split_candidate) == 2:
-                            if len(split_issues) < 2:
-                                continue
-                            if split_candidate[1] == split_issues[1]:
-                                keep_index.append(idx)
-                            else:
-                                pass
-                        else:
-                            # maximum of filter's length  is 2
-                            raise NotImplementedError
+
         new_related_issues_all.append(new_related_issues)
+        new_match_reason_all.append(set(new_match_reason))
+
+        # # get truth from judgement if is our data
+        # if need_to_process_text_flag:
+        #     process_text = df['judgement'][idx].replace('\r\n', '').replace('\u3000', '')
+        #     process_text = " ".join(process_text.split())
+        #     process_text = re.sub('事[ ]*實', '事實', process_text)
+        #     process_text = re.sub('理[ ]*由', '理由', process_text)
+        #     if '簡' in df['no'][idx]:
+        #         truth_condition = '事實(.|\n|\r)*中華民國'
+        #         match = re.search(truth_condition, process_text)
+        #         # 5 for 事實及理由 and 4 for 中華民國
+        #         truth_all.append(process_text[match.start()+5:match.end()-4])
+        #     else:
+        #         truth_condition = '事實(.|\n|\r)*[ ]*理由'
+        #         match = re.search(truth_condition, process_text)
+        #         # 2 for 事實 and 理由
+        #         truth_all.append(process_text[match.start()+2:match.end()-2])
+        #         # if df['no'][idx] == '108,易,28':
+        #         #     print(df['judgement'][idx])
+        #         #     print()
+        #         #     print(process_text[231:8376])
+        #         #     print(match)
+        #         #     1/0
+        #     if match == None:
+        #         raise NotImplementedError
+        # else:
+        #     truth_all.append([])
 
     df['new_relatedIssues'] = new_related_issues_all
     del df['relatedIssues']
-    print(len(keep_index), len(set(keep_index)), len(remove_index), len(set(remove_index)))
+    df['new_reason'] = new_match_reason_all
+    # df['truth'] = truth_all
+    # del df['judgement']
+    # print(len(keep_index), len(set(keep_index)), len(remove_index), len(set(remove_index)))
     keep_index = set(keep_index)                    # avoid count same index
     remove_index = set(remove_index)
     keep_index = [keep for keep in keep_index if keep not in remove_index]
     df = df.loc[keep_index].reset_index(drop=True)
     print(df.shape)
-    df.to_csv('filter_concat_new.csv', index=False)
+
+    return df
+    # df.to_csv('filter_concat_new.csv', index=False)
 
 
 def filter_data(filename):
@@ -207,7 +245,7 @@ def EDA(filename):
     # parse related issues
     law_counter = Counter()
     for idx in tqdm(range(len(df))):
-        related_issues = literal_eval(df['relatedIssues'][idx])
+        related_issues = literal_eval(df['new_relatedIssues'][idx])
         for law in related_issues:
             law_counter.update([law['lawName']])
 
@@ -219,7 +257,7 @@ def EDA(filename):
 
 if __name__ == '__main__':
     # process_file(sys.argv[1])
-    concat_file(sys.argv[1])
+    # concat_file(sys.argv[1])
     # filter_law(sys.argv[1])
+    EDA(sys.argv[1])
     # filter_data(sys.argv[1])
-    # EDA(sys.argv[1])
