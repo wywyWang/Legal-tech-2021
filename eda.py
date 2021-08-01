@@ -7,6 +7,7 @@ import sys
 import os
 import re
 from datetime import datetime
+from ArticutAPI import Articut
 
 
 def read_csv(folder):
@@ -255,9 +256,41 @@ def EDA(filename):
         result_log.write(str(law_counter))
 
 
+def filter_withdraw_penalty(filename):
+    df = dt.fread(filename).to_pandas()
+    print(df.shape)
+    remove_index = []
+    for idx in range(len(df)):
+        if '上訴駁回' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
+            remove_index.append(idx)
+
+    df = df.loc[~df.index.isin(remove_index)].reset_index(drop=True)
+    print(df.shape)
+    df.to_csv('filter_withdraw_concat.csv', index=False)
+
+
+def get_penalty(filename):
+    username = "wwdu@gapp.nthu.edu.tw"
+    apikey = "kRhxqmHNHqgXKK&NJCCz^6Sc9^lpu4R"
+    articut = Articut(username, apikey)
+
+    df = dt.fread(filename).to_pandas()
+
+    fetch_penalty = []
+    for idx in tqdm(range(len(df))):
+        result = articut.parse(df['mainText'][idx])
+        penalty = articut.LawsToolkit.getPenalty(result)
+        fetch_penalty.append(penalty)
+    
+    df['penalty'] = fetch_penalty
+    df.to_csv('add_penalty.csv', index=False)
+
+
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
     # filter_law(sys.argv[1])
-    EDA(sys.argv[1])
+    # EDA(sys.argv[1])
     # filter_data(sys.argv[1])
+    # filter_withdraw_penalty(sys.argv[1])
+    get_penalty(sys.argv[1])
