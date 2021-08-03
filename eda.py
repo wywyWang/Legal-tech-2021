@@ -87,7 +87,7 @@ def filter_law(df):
 
     # filter unused law data
     criminal_law_filter = [
-        '125 2', '126 2', '135 2', '136 2', '177 2', '185 2', '185-1 2', '185-1 4', '185-2 3', '185-3 2',
+        '125 2', '126 2', '135 3', '136 2', '177 2', '185 2', '185-1 2', '185-1 4', '185-2 3', '185-3 2',
         '185-3 3', '185-4', '186-1 2', '187-2 2', '187-3 2', '189 2', '189-2 2', '190 2', '190-1 3',
         '190-1 4', '191-1 3', '226 1', '271 1', '272', '273 1', '274 1', '275 1', '277 2', '278', '279',
         '282', '283', '286 3', '286 4', '290 2', '291 2', '293 2', '294 2', '302 2', '325 2', '328 3',
@@ -97,7 +97,7 @@ def filter_law(df):
 
     criminal_law_section = \
     {
-        '125 2': '瀆職罪', '126 2': '瀆職罪', '135 2': '妨害公務罪', '136 2': '妨害公務罪', '177 2': '公共危險罪', 
+        '125 2': '瀆職罪', '126 2': '瀆職罪', '135 3': '妨害公務罪', '136 2': '妨害公務罪', '177 2': '公共危險罪', 
         '185 2': '公共危險罪', '185-1 2': '公共危險罪', '185-1 4': '公共危險罪', '185-2 3': '公共危險罪', '185-3 2': '公共危險罪',
         '185-3 3': '公共危險罪', '185-4': '公共危險罪', '186-1 2': '公共危險罪', '187-2 2': '公共危險罪', '187-3 2': '公共危險罪', 
         '189 2': '公共危險罪', '189-2 2': '公共危險罪', '190 2': '公共危險罪', '190-1 3': '公共危險罪','190-1 4': '公共危險罪', 
@@ -187,7 +187,7 @@ def filter_law(df):
         #     truth_all.append([])
 
     df['new_relatedIssues'] = new_related_issues_all
-    del df['relatedIssues']
+    # del df['relatedIssues']
     df['new_reason'] = new_match_reason_all
     # df['truth'] = truth_all
     # del df['judgement']
@@ -223,7 +223,7 @@ def filter_data(filename):
         df = df.drop(deleted_indexes).reset_index(drop=True)
     
     print(df.shape)
-    df.to_csv('filter_concat.csv', index=False)
+    df.to_csv('filter_eda.csv', index=False)
 
 
 def print_value_counts(data, column, normalize=True):
@@ -261,36 +261,40 @@ def filter_withdraw_penalty(filename):
     print(df.shape)
     remove_index = []
     for idx in range(len(df)):
-        if '上訴駁回' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
+        if '上訴駁回' in df['mainText'][idx] or '不受理' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
             remove_index.append(idx)
 
+    print(len(set(remove_index)))
     df = df.loc[~df.index.isin(remove_index)].reset_index(drop=True)
     print(df.shape)
-    df.to_csv('filter_withdraw_concat.csv', index=False)
+    df.to_csv('filter_withdraw.csv', index=False)
 
 
-def get_penalty(filename):
-    username = "wwdu@gapp.nthu.edu.tw"
-    apikey = "kRhxqmHNHqgXKK&NJCCz^6Sc9^lpu4R"
-    articut = Articut(username, apikey)
-
+def filter_penalty(filename):
     df = dt.fread(filename).to_pandas()
+    remove_index = []
+    for idx in range(len(df)):
+        if '過失傷害' in df['mainText'][idx] or '受傷' in df['mainText'][idx] or '致人傷' in df['mainText'][idx] or '致人受傷' in df['mainText'][idx]:
+            if '致人於死' in df['mainText']:
+                print(idx)
+                continue
+            elif '無期徒刑' in df['mainText'][idx] or '死刑' in df['mainText'][idx]:
+                print(idx)
+                continue
+            else:
+                if df['maxpenalty'][idx] <= 3650:
+                    remove_index.append(idx)
 
-    fetch_penalty = []
-    for idx in tqdm(range(len(df))):
-        result = articut.parse(df['mainText'][idx])
-        penalty = articut.LawsToolkit.getPenalty(result)
-        fetch_penalty.append(penalty)
-    
-    df['penalty'] = fetch_penalty
-    df.to_csv('add_penalty.csv', index=False)
+    print(len(set(remove_index)))
+    df = df.loc[~df.index.isin(remove_index)].reset_index(drop=True)
+    print(df.shape)
+    df.to_csv('new_data.csv', index=False)
 
 
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
-    # filter_law(sys.argv[1])
-    # EDA(sys.argv[1])
     # filter_data(sys.argv[1])
     # filter_withdraw_penalty(sys.argv[1])
-    get_penalty(sys.argv[1])
+    # filter_penalty(sys.argv[1])
+    EDA(sys.argv[1])
