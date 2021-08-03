@@ -274,7 +274,7 @@ def filter_penalty(filename):
     df = dt.fread(filename).to_pandas()
     remove_index = []
     for idx in range(len(df)):
-        if '過失傷害' in df['mainText'][idx] or '受傷' in df['mainText'][idx] or '致人傷' in df['mainText'][idx] or '致人受傷' in df['mainText'][idx]:
+        if '無罪' in df['mainText'][idx] or '過失傷害' in df['mainText'][idx] or '受傷' in df['mainText'][idx] or '致人傷' in df['mainText'][idx] or '致人受傷' in df['mainText'][idx]:
             if '致人於死' in df['mainText']:
                 print(idx)
                 continue
@@ -284,6 +284,8 @@ def filter_penalty(filename):
             else:
                 if df['maxpenalty'][idx] <= 3650:
                     remove_index.append(idx)
+                else:
+                    print(idx)
 
     print(len(set(remove_index)))
     df = df.loc[~df.index.isin(remove_index)].reset_index(drop=True)
@@ -296,5 +298,5 @@ if __name__ == '__main__':
     # concat_file(sys.argv[1])
     # filter_data(sys.argv[1])
     # filter_withdraw_penalty(sys.argv[1])
-    # filter_penalty(sys.argv[1])
-    EDA(sys.argv[1])
+    filter_penalty(sys.argv[1])
+    # EDA(sys.argv[1])
