@@ -297,7 +297,7 @@ def filter_truth(filename):
     truth_all = []
 
     not_match_count = 0
-    special_idx = [1354, 1527, 1974, 2634, 3967, 4741, 4743, 5493, 5501]                # not follow form
+    special_idx = [1354, 1527, 1974, 2005, 2414, 2461, 2634, 3045, 3172, 3225, 3967, 4741, 4743, 5493, 5501]                # not follow form
     for idx in tqdm(range(len(df))):
         # get truth from judgement if is our data
         if df['judgement'][idx][0] == '[':
@@ -316,7 +316,7 @@ def filter_truth(filename):
 
         if '簡' in df['no'][idx]:
             # print(process_text)
-            truth_condition = '([ ]+事[ ]+實|[ 、]+(犯罪)*事實及(理由|證據)+[： ]+)(.*|\n*|\r*)(簡[ ]*易[ ]*判[ ]*決|[ ]+理[ ]*由[ ]+)'
+            truth_condition = '(([、。 ]+理[ ]*由[： ]+)|([ ]+事[ ]+實|[ 、]+(犯罪)*事實(要旨)*(及(理由|證據)+)*[、： ]+)(.*|\n*|\r*)(簡[ ]*易[ ]*判[ ]*決|[ ]+理[ ]*由[ ]+|[、 ]+上揭事實[，： ]+|([。、 ]+處罰條文[。、： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([，。、 ]+(\([二三]\))*證據.*(法條)*[ ]+)))|([，。、 ]+事實及理由[，。、 ]+)(.*|\n*|\r*)([，。、 ]+二[，。、 ]+)'
 
             # pattern = re.compile(truth_condition)
             # match = pattern.findall(process_text)
@@ -324,7 +324,7 @@ def filter_truth(filename):
             search_condition = re.search(truth_condition, process_text)
 
             if search_condition is None:
-                reason_then_truth_condition = '([ ]+理[ ]*由[ ]+)(.*|\n*|\r*)([ ]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)'
+                reason_then_truth_condition = '([、。 ]+理[ ]*由[： ]+)(.*|\n*|\r*)([ ]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)'
                 search_condition = re.search(reason_then_truth_condition, process_text)
 
                 if idx in special_idx:
@@ -339,6 +339,10 @@ def filter_truth(filename):
 
                     if search_condition is None:
                         match = process_text
+                        # print(process_text)
+                        # print(idx)
+                        # print(df['mainText'][idx])
+                        # 1/0
                         not_match_count += 1
                     else:
                         match = limit_text[search_condition.start():search_condition.end()]
@@ -349,6 +353,10 @@ def filter_truth(filename):
                         # match = match[0][match_idx]
                 else:
                     match = process_text
+                    print(process_text)
+                    print(idx)
+                    print(df['mainText'][idx])
+                    1/0
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
@@ -365,10 +373,6 @@ def filter_truth(filename):
                     match = process_text
                 else:
                     match = process_text
-                    print(process_text)
-                    print(idx)
-                    print(df['mainText'][idx])
-                    1/0
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
