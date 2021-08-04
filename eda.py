@@ -1,4 +1,5 @@
 import datatable as dt
+from numpy import mat
 import pandas as pd
 from tqdm import tqdm
 from collections import Counter
@@ -6,6 +7,7 @@ from ast import literal_eval
 import sys
 import os
 import re
+# import regex as re
 from datetime import datetime
 from ArticutAPI import Articut
 
@@ -115,7 +117,6 @@ def filter_law(df):
     keep_index, remove_index = [], []
     new_related_issues_all = []
     new_match_reason_all = []
-    # truth_all = []
     for idx in tqdm(range(len(df))):
         # we only need 判決
         if df['type'][idx] == '裁定':
@@ -293,10 +294,79 @@ def filter_penalty(filename):
     df.to_csv('new_data.csv', index=False)
 
 
+def filter_truth(filename):
+    df = dt.fread(filename).to_pandas()
+    truth_all = []
+
+    not_match_count = 0
+    special_idx = [1974]                # not follow form
+    for idx in tqdm(range(len(df))):
+        # get truth from judgement if is our data
+        process_text = df['judgement'][idx]
+        process_text = " ".join(process_text.split())
+
+        if '簡' in df['no'][idx]:
+            # print(process_text)
+            truth_condition = '([ ]+事[ ]+實|[ 、]+(犯罪)*事實及(理由|證據)+[： ]+)(.*|\n*|\r*)(簡[ ]*易[ ]*判[ ]*決|[ ]+理[ ]*由[ ]+)'
+
+            # pattern = re.compile(truth_condition)
+            # match = pattern.findall(process_text)
+
+            search_condition = re.search(truth_condition, process_text)
+
+            if search_condition is None:
+                reason_then_truth_condition = '([ ]+理[ ]*由[ ]+)(.*|\n*|\r*)([ ]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)'
+                search_condition = re.search(reason_then_truth_condition, process_text)
+                if bool(search_condition):
+                    reason_then_truth_condition = '([ ]+事[ ]+實|[ 、]+(犯[ ]*罪[ ]*)*事[ ]*實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([。 ]+證據.*[ ]+)'
+                    pattern = re.compile(reason_then_truth_condition)
+                    match = pattern.findall(process_text[search_condition.span()[0]:])
+
+                    if len(match) == 0:
+                        match = process_text
+                        not_match_count += 1
+                    else:
+                        match_idx = None
+                        for tid, text in enumerate(match[0]):
+                            if '案經' in text:
+                                match_idx = tid
+                        match = match[0][match_idx]
+                elif idx in special_idx:
+                    match = process_text
+                else:
+                    match = process_text
+                    not_match_count += 1
+            else:
+                match = process_text[search_condition.start():search_condition.end()]
+        else:
+            truth_condition = '(([ ]+事實及理由[ ]+|[ ]+事[ ]+實|犯罪事實[ ]+)(.*|\n*|\r*)([ ]+理[ ]*由[ ]+))|((犯罪事實要旨：[ ])(.*|\n*|\r*)(處罰條文：[ ]+))'
+
+            # pattern = re.compile(truth_condition)
+            # match = pattern.findall(process_text)
+
+            search_condition = re.search(truth_condition, process_text)
+
+            if search_condition is None:
+                match = process_text
+                # print(idx)
+                # print(process_text)
+                # 1/0
+                not_match_count += 1
+            else:
+                match = process_text[search_condition.start():search_condition.end()]
+
+        truth_all.append(match)
+
+    df['truth'] = truth_all
+    df.to_csv('new_truth_data.csv', index=False)
+    print("Not match count: {}".format(not_match_count))
+
+
 if __name__ == '__main__':
     # process_file(sys.argv[1])
     # concat_file(sys.argv[1])
     # filter_data(sys.argv[1])
     # filter_withdraw_penalty(sys.argv[1])
-    filter_penalty(sys.argv[1])
+    # filter_penalty(sys.argv[1])
+    filter_truth(sys.argv[1])
     # EDA(sys.argv[1])
