@@ -317,22 +317,27 @@ def filter_truth(filename):
             if search_condition is None:
                 reason_then_truth_condition = '([ ]+理[ ]*由[ ]+)(.*|\n*|\r*)([ ]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)'
                 search_condition = re.search(reason_then_truth_condition, process_text)
-                if bool(search_condition):
-                    reason_then_truth_condition = '([ ]+事[ ]+實|[ 、]+(犯[ ]*罪[ ]*)*事[ ]*實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([。 ]+證據.*[ ]+)'
-                    pattern = re.compile(reason_then_truth_condition)
-                    match = pattern.findall(process_text[search_condition.span()[0]:])
 
-                    if len(match) == 0:
+                if idx in special_idx:
+                    match = process_text
+                elif bool(search_condition):
+                    reason_then_truth_condition = '([ ]+事[ ]+實|[ 、]+(犯[ ]*罪[ ]*)*事[ ]*實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([。 ]+證據.*[ ]+)'
+                    # pattern = re.compile(reason_then_truth_condition)
+                    # match = pattern.findall(process_text[search_condition.span()[0]:])
+
+                    limit_text = process_text[search_condition.span()[0]:]
+                    search_condition = re.search(reason_then_truth_condition, limit_text)
+
+                    if search_condition is None:
                         match = process_text
                         not_match_count += 1
                     else:
-                        match_idx = None
-                        for tid, text in enumerate(match[0]):
-                            if '案經' in text:
-                                match_idx = tid
-                        match = match[0][match_idx]
-                elif idx in special_idx:
-                    match = process_text
+                        match = limit_text[search_condition.start():search_condition.end()]
+                        # match_idx = None
+                        # for tid, text in enumerate(match[0]):
+                        #     if '案經' in text:
+                        #         match_idx = tid
+                        # match = match[0][match_idx]
                 else:
                     match = process_text
                     not_match_count += 1
