@@ -1,5 +1,4 @@
 import datatable as dt
-from numpy import mat
 import pandas as pd
 from tqdm import tqdm
 from collections import Counter
@@ -7,7 +6,6 @@ from ast import literal_eval
 import sys
 import os
 import re
-# import regex as re
 from datetime import datetime
 from ArticutAPI import Articut
 
@@ -262,7 +260,7 @@ def filter_withdraw_penalty(filename):
     print(df.shape)
     remove_index = []
     for idx in range(len(df)):
-        if '上訴駁回' in df['mainText'][idx] or '不受理' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
+        if '免訴' in df['mainText'][idx] or '駁回' in df['mainText'][idx] or '不受理' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
             remove_index.append(idx)
 
     print(len(set(remove_index)))
@@ -299,10 +297,21 @@ def filter_truth(filename):
     truth_all = []
 
     not_match_count = 0
-    special_idx = [1974]                # not follow form
+    special_idx = [1354, 1527, 1974, 2634, 3967, 4741, 4743, 5493, 5501]                # not follow form
     for idx in tqdm(range(len(df))):
         # get truth from judgement if is our data
-        process_text = df['judgement'][idx]
+        if df['judgement'][idx][0] == '[':
+            process_text = literal_eval(df['judgement'][idx])
+            filter_text = []
+            for text in process_text:
+                if type(text).__name__ == 'dict':
+                    pass
+                else:
+                    filter_text.append(text)
+            process_text = " ".join(filter_text)
+        else:
+            process_text = df['judgement'][idx]
+
         process_text = " ".join(process_text.split())
 
         if '簡' in df['no'][idx]:
@@ -344,7 +353,7 @@ def filter_truth(filename):
             else:
                 match = process_text[search_condition.start():search_condition.end()]
         else:
-            truth_condition = '(([ ]+事實及理由[ ]+|[ ]+事[ ]+實|犯罪事實[ ]+)(.*|\n*|\r*)([ ]+理[ ]*由[ ]+))|((犯罪事實要旨：[ ])(.*|\n*|\r*)(處罰條文：[ ]+))'
+            truth_condition = '(([ 、]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
 
             # pattern = re.compile(truth_condition)
             # match = pattern.findall(process_text)
@@ -352,11 +361,15 @@ def filter_truth(filename):
             search_condition = re.search(truth_condition, process_text)
 
             if search_condition is None:
-                match = process_text
-                # print(idx)
-                # print(process_text)
-                # 1/0
-                not_match_count += 1
+                if idx in special_idx:
+                    match = process_text
+                else:
+                    match = process_text
+                    print(process_text)
+                    print(idx)
+                    print(df['mainText'][idx])
+                    1/0
+                    not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
 
