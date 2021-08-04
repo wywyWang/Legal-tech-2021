@@ -353,10 +353,6 @@ def filter_truth(filename):
                         # match = match[0][match_idx]
                 else:
                     match = process_text
-                    print(process_text)
-                    print(idx)
-                    print(df['mainText'][idx])
-                    1/0
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
