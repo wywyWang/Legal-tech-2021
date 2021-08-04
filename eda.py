@@ -315,7 +315,6 @@ def filter_truth(filename):
         process_text = " ".join(process_text.split())
 
         if '簡' in df['no'][idx]:
-            # print(process_text)
             truth_condition = '(([、。 ]+理[ ]*由[： ]+)|([ ]+事[ ]+實|[ 、]+(犯罪)*事實(要旨)*(及(理由|證據)+)*[、： ]+)(.*|\n*|\r*)(簡[ ]*易[ ]*判[ ]*決|[ ]+理[ ]*由[ ]+|[、 ]+上揭事實[，： ]+|([。、 ]+處罰條文[。、： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([，。、 ]+(\([二三]\))*證據.*(法條)*[ ]+)))|([，。、 ]+事實及理由[，。、 ]+)(.*|\n*|\r*)([，。、 ]+二[，。、 ]+)'
 
             # pattern = re.compile(truth_condition)
@@ -339,25 +338,16 @@ def filter_truth(filename):
 
                     if search_condition is None:
                         match = process_text
-                        # print(process_text)
-                        # print(idx)
-                        # print(df['mainText'][idx])
-                        # 1/0
                         not_match_count += 1
                     else:
                         match = limit_text[search_condition.start():search_condition.end()]
-                        # match_idx = None
-                        # for tid, text in enumerate(match[0]):
-                        #     if '案經' in text:
-                        #         match_idx = tid
-                        # match = match[0][match_idx]
                 else:
                     match = process_text
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
         else:
-            truth_condition = '(([ 、]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
+            truth_condition = '(([ 、]+((犯罪)*事實(及(理由|證據)+)*|(事[ ]+實))[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
 
             # pattern = re.compile(truth_condition)
             # match = pattern.findall(process_text)
@@ -372,6 +362,10 @@ def filter_truth(filename):
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
+                # print(process_text)
+                # print(search_condition)
+                # print(match)
+                # 1/0
 
         truth_all.append(match)
 
