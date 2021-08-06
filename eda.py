@@ -259,8 +259,6 @@ def filter_withdraw_penalty(filename):
     df = dt.fread(filename).to_pandas()
     print(df.shape)
 
-    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
-
     remove_index = []
     for idx in range(len(df)):
         if '免訴' in df['mainText'][idx] or '駁回' in df['mainText'][idx] or '不受理' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
@@ -274,10 +272,28 @@ def filter_withdraw_penalty(filename):
     df.to_csv('filter_withdraw.csv', index=False)
 
 
-def filter_penalty(filename):
+def filter_penalty_lawyer(filename):
     df = dt.fread(filename).to_pandas()
+
+    # add year column
+    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
+
     remove_index = []
+    plaintiff_lawyer, defendant_lawyer = [0 for _ in range(len(df))], [0 for _ in range(len(df))]
     for idx in range(len(df)):
+        # add lawyer
+        party = literal_eval(df['party'][idx])
+        for each_party in party:
+            if 'agentAdLitem' in each_party['group']:
+                if 'lawyer' not in each_party['group']:
+                    print(each_party)
+                    1/0
+                else:
+                    if 'plaintiff' in each_party['group']:
+                        plaintiff_lawyer[idx] = 1
+                    if 'defendant' in each_party['group']:
+                        defendant_lawyer[idx] = 1
+
         if '無罪' in df['mainText'][idx] or '過失傷害' in df['mainText'][idx] or '受傷' in df['mainText'][idx] or '致人傷' in df['mainText'][idx] or '致人受傷' in df['mainText'][idx]:
             if '致人於死' in df['mainText']:
                 print(idx)
@@ -291,8 +307,11 @@ def filter_penalty(filename):
                 else:
                     print(idx)
 
-    print(len(set(remove_index)))
+    df['plaintiff_lawyer'] = plaintiff_lawyer
+    df['defendant_lawyer'] = defendant_lawyer
+    print("Remove: {}".format(len(set(remove_index))))
     df = df.loc[~df.index.isin(remove_index)].reset_index(drop=True)
+    df.drop(['C1', 'C0', 'sys', 'mypenalty', 'mypenalty_int', 'idx'], axis=1, inplace=True)
     print(df.shape)
     df.to_csv('new_data.csv', index=False)
 
@@ -356,6 +375,6 @@ if __name__ == '__main__':
     # concat_file(sys.argv[1])
     # filter_data(sys.argv[1])
     # filter_withdraw_penalty(sys.argv[1])
-    # filter_penalty(sys.argv[1])
+    # filter_penalty_lawyer(sys.argv[1])
     filter_truth(sys.argv[1])
     # EDA(sys.argv[1])
