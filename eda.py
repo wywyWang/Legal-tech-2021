@@ -258,9 +258,14 @@ def EDA(filename):
 def filter_withdraw_penalty(filename):
     df = dt.fread(filename).to_pandas()
     print(df.shape)
+
+    df['year'] = df['date'].apply(lambda x: x.split('-')[0])
+
     remove_index = []
     for idx in range(len(df)):
         if '免訴' in df['mainText'][idx] or '駁回' in df['mainText'][idx] or '不受理' in df['mainText'][idx] or ('原判決' in df['mainText'][idx] and '撤銷' in df['mainText'][idx]):
+            remove_index.append(idx)
+        if '簡' in df['no'][idx]:
             remove_index.append(idx)
 
     print(len(set(remove_index)))
@@ -315,37 +320,7 @@ def filter_truth(filename):
         process_text = " ".join(process_text.split())
 
         if '簡' in df['no'][idx]:
-            truth_condition = '(([、。 ]+理[ ]*由[： ]+)|([ ]+事[ ]+實|[ 、]+(犯罪)*事實(要旨)*(及(理由|證據)+)*[、： ]+)(.*|\n*|\r*)(簡[ ]*易[ ]*判[ ]*決|[ ]+理[ ]*由[ ]+|[、 ]+上揭事實[，： ]+|([。、 ]+處罰條文[。、： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([，。、 ]+(\([二三]\))*證據.*(法條)*[ ]+)))|([，。、 ]+事實及理由[，。、 ]+)(.*|\n*|\r*)([，。、 ]+二[，。、 ]+)'
-
-            # pattern = re.compile(truth_condition)
-            # match = pattern.findall(process_text)
-
-            search_condition = re.search(truth_condition, process_text)
-
-            if search_condition is None:
-                reason_then_truth_condition = '([、。 ]+理[ ]*由[： ]+)(.*|\n*|\r*)([ ]+事[ ]+實|[ 、]+(犯罪)*事實(及(理由|證據)+)*[： ]+)'
-                search_condition = re.search(reason_then_truth_condition, process_text)
-
-                if idx in special_idx:
-                    match = process_text
-                elif bool(search_condition):
-                    reason_then_truth_condition = '([ ]+事[ ]+實|[ 、]+(犯[ ]*罪[ ]*)*事[ ]*實(及(理由|證據)+)*[： ]+)(.*|\n*|\r*)([。 ]+證據.*[ ]+)'
-                    # pattern = re.compile(reason_then_truth_condition)
-                    # match = pattern.findall(process_text[search_condition.span()[0]:])
-
-                    limit_text = process_text[search_condition.span()[0]:]
-                    search_condition = re.search(reason_then_truth_condition, limit_text)
-
-                    if search_condition is None:
-                        match = process_text
-                        not_match_count += 1
-                    else:
-                        match = limit_text[search_condition.start():search_condition.end()]
-                else:
-                    match = process_text
-                    not_match_count += 1
-            else:
-                match = process_text[search_condition.start():search_condition.end()]
+            raise NotImplementedError
         else:
             truth_condition = '(([ 、]+((犯罪)*事實(及(理由|證據)+)*|(事[ ]+實))[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
 
@@ -370,6 +345,8 @@ def filter_truth(filename):
         truth_all.append(match)
 
     df['truth'] = truth_all
+    print(len(set(special_idx)))
+    df = df.loc[~df.index.isin(special_idx)].reset_index(drop=True)
     df.to_csv('new_truth_data.csv', index=False)
     print("Not match count: {}".format(not_match_count))
 
