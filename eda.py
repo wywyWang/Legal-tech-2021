@@ -321,7 +321,7 @@ def filter_truth(filename):
     truth_all = []
 
     not_match_count = 0
-    special_idx = [1354, 1527, 1974, 2005, 2414, 2461, 2634, 3045, 3172, 3225, 3967, 4741, 4743, 5493, 5501]                # not follow form
+    special_idx = [922, 1059, 1835, 2077, 2686, 2876, 3223, 3225, 3321, 3566, 3793, 3799]                # not follow form
     for idx in tqdm(range(len(df))):
         # get truth from judgement if is our data
         if df['judgement'][idx][0] == '[':
@@ -341,25 +341,50 @@ def filter_truth(filename):
         if '簡' in df['no'][idx]:
             raise NotImplementedError
         else:
-            truth_condition = '(([ 、]+((犯罪)*事實(及(理由|證據)+)*|(事[ ]+實))[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
+            # truth_condition = '(([ 、]+((犯罪)*事實(及(理由|證據)+)*|(事[ ]+實))[： ]+)(.*|\n*|\r*)([、。 ]+理[ ]*由[： ]+)|([）、。 ]+.*[證依][ ]*據.*[，： ]+)|([、。 ]+程[ ]*序.*[： ]+)|([。、 ]+論[ ]*罪([ ]*科[ ]*刑)*.*[： ]+)|([。、 ]+上開犯罪事實[，： ]+)|(處罰條文：[： ]+))|(([。、： ]+犯罪事實要旨[:： ]+)(.*|\n*|\r*)([。、： ]+處罰條文[:： ]+|法條[:： ]+))'
+            head_condition_order = ['[、。 ]{1}(((犯罪)*事實(要旨)*)|(事[ ]+實))[，、。： ]{1}',
+                                    '[、。 ]{1}(((本件){0,1}(犯罪)*事實(及(理由|證據){1})*))[，、。： ]{1}']
+            middle_condition = '(.*|\\n*|\\r*)'
+            tail_condition_order = ['[）、。 ]{1}理[ ]*由[，:： ]{1}',
+                                    '[）、。 ]{1}論罪(科刑)*[，:： ]{1}',
+                                    '[）、。 ]{1}論罪(科刑)之理由*[，:： ]{1}',
+                                    '[）、。 ]{1}處罰條文[，:： ]{1}',
+                                    '[）、。 ]{1}.{0,5}法條[，:： ]{1}',
+                                    '[）、。 ]{1}[證依][ ]*據.{0,3}[，:： ]{1}',
+                                    '[）、。 ]{1}證據部分',
+                                    '[）、。 ]{1}本件犯罪事實及證據[，:： ]{1}',
+                                    '偵查起訴[。，:： ]{1}',
+                                    '[）、。 ]{1}二[、，:： ]{1}']
 
-            # pattern = re.compile(truth_condition)
-            # match = pattern.findall(process_text)
+            for head_id, head_condition in enumerate(head_condition_order):
+                break_flag = 0
+                for tail_id, tail_condition in enumerate(tail_condition_order):
+                    if head_id != 1 and tail_id == 9:
+                        continue
+                    truth_condition = head_condition + middle_condition + tail_condition
+                    # print(truth_condition)
+                    search_condition = re.search(truth_condition, process_text)
 
-            search_condition = re.search(truth_condition, process_text)
+                    if search_condition is not None:
+                        break_flag = 1
+                        break
+                if break_flag:
+                    break
 
             if search_condition is None:
                 if idx in special_idx:
                     match = process_text
                 else:
                     match = process_text
+
+                    print(idx)
+                    print(process_text)
+                    print(search_condition)
+                    1/0
+
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
-                # print(process_text)
-                # print(search_condition)
-                # print(match)
-                # 1/0
 
         truth_all.append(match)
 
