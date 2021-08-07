@@ -1,10 +1,13 @@
 import pandas as pd
+import pickle
 import argparse
 import os
 import numpy as np
 from ast import literal_eval
 from tqdm import tqdm
 from sklearn.metrics import mean_absolute_error
+from ArticutAPI import Articut
+from scipy import spatial
 
 
 def get_argument():
@@ -80,6 +83,59 @@ def rule_based(data, query):
     return matches
 
 
+def using_bert(data, query):
+    from lawbert import transform_embedding
+    max_length = 512
+
+    # store embedding from BERT of training data
+    if not os.path.isfile('train_bert.pickle'):
+        train_embedding = {}
+        for idx in tqdm(range(len(data))):
+            if len(query['truth']) >= max_length:
+                truth = data['truth'][idx][:max_length]
+            else:
+                truth = data['truth'][idx]
+            outputs_truth = transform_embedding(truth)
+            outputs_reason = transform_embedding(data['reason'][idx])
+            train_embedding[data['no'][idx]] = (outputs_reason['pooler_output'][0].tolist(), outputs_truth['pooler_output'][0].tolist())
+
+        with open('train_bert.pickle', 'wb') as file:
+            pickle.dump(train_embedding, file)
+
+    top_k = query['TOPK']
+
+    # get query embedding from BERT
+    if len(query['truth']) >= max_length:
+        query['truth'] = query['truth'][:max_length]
+    outputs_truth = transform_embedding(query['truth'])
+    query_truth_embedding = outputs_truth['pooler_output'][0].tolist()
+    outputs_reason = transform_embedding(query['reason'])
+    query_reason_embedding = outputs_reason['pooler_output'][0].tolist()
+
+    with open('train_bert.pickle', 'rb') as f:
+        trained_embeddings = pickle.load(f)
+
+    similarity_index = {}
+    for no, trained_embedding in trained_embeddings.items():
+        similarity_truth = 1 - spatial.distance.cosine(query_truth_embedding, trained_embedding[1])
+        similarity_reason = 1 - spatial.distance.cosine(query_reason_embedding, trained_embedding[0])
+        similarity_index[no] = (similarity_truth + similarity_reason)
+    
+    similarity_index = dict(sorted(similarity_index.items(), key=lambda item: item[1], reverse=True))
+
+    top_indexes = []
+    for no, similarity in similarity_index.items():
+        if len(top_indexes) >= top_k:
+            break
+        else:
+            top_indexes.append(data.index[data['no'] == no].tolist()[0])
+
+    matches = data.loc[top_indexes]
+    del matches['judgement']
+    matches.to_csv('bert_results/bert_{}.csv'.format(query['no']), index=False)
+    return matches
+
+
 def recommend_similar(train, test):
     y_true, y_pred = [], []
     for idx in tqdm(range(len(test))):
@@ -92,7 +148,8 @@ def recommend_similar(train, test):
             'TOPK': config['TOPK']
         }
 
-        matches = rule_based(train, query)
+        # matches = rule_based(train, query)
+        matches = using_bert(train, query)
 
         if len(matches) != 0:
             y_pred.append(sum(matches['maxpenalty']) / len(matches['maxpenalty']))
@@ -116,5 +173,7 @@ if __name__ == '__main__':
 
     if not os.path.exists('rule_based_results'):
         os.makedirs('rule_based_results')
+    if not os.path.exists('bert_results'):
+        os.makedirs('bert_results')
 
     recommend_similar(train, test)
