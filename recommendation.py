@@ -37,6 +37,7 @@ def split_train_test(df):
 
     print('Train size: {}, test size: {}'.format(len(train), len(test)))
 
+    # train.to_csv('train.csv', index=False)
     # test.to_csv('test.csv', index=False)
 
     return train, test
@@ -70,8 +71,12 @@ def rule_based(data, query):
     # if len(top_nonzero_indexes) != len(top_indexes):
     #     print("HI")
 
+    if len(top_nonzero_indexes) == top_k:
+        print("HI")
+
     matches = data.loc[top_nonzero_indexes]
-    matches.to_csv('results/rule_based_{}.csv'.format(query['no']), index=False)
+    del matches['judgement']
+    matches.to_csv('rule_based_results/rule_based_{}.csv'.format(query['no']), index=False)
     return matches
 
 
@@ -109,7 +114,7 @@ if __name__ == '__main__':
 
     train, test = split_train_test(df)
 
-    if not os.path.exists('results'):
-        os.makedirs('results')
+    if not os.path.exists('rule_based_results'):
+        os.makedirs('rule_based_results')
 
     recommend_similar(train, test)
