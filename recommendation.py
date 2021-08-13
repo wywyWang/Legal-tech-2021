@@ -96,8 +96,19 @@ def using_bert(data, query):
             else:
                 truth = data['truth'][idx]
             outputs_truth = transform_embedding(truth)
-            outputs_reason = transform_embedding(data['reason'][idx])
-            train_embedding[data['no'][idx]] = (outputs_reason['pooler_output'][0].tolist(), outputs_truth['pooler_output'][0].tolist())
+
+            outputs_reason = transform_embedding(data['reason'][idx])['pooler_output'][0].tolist()
+
+            # parse new reason by sections of law
+            new_reason = set(literal_eval(data['new_reason'][idx]))
+            outputs_new_reason = None
+            for reason in new_reason:
+                if outputs_new_reason is None:
+                    outputs_new_reason = transform_embedding(reason)['pooler_output'][0].tolist()
+                else:
+                    outputs_new_reason = [sum(x) for x in zip(outputs_new_reason, transform_embedding(reason)['pooler_output'][0].tolist())]
+
+            train_embedding[data['no'][idx]] = (outputs_reason, outputs_new_reason, outputs_truth['pooler_output'][0].tolist())
 
         with open('train_bert.pickle', 'wb') as file:
             pickle.dump(train_embedding, file)
@@ -109,17 +120,27 @@ def using_bert(data, query):
         query['truth'] = query['truth'][:max_length]
     outputs_truth = transform_embedding(query['truth'])
     query_truth_embedding = outputs_truth['pooler_output'][0].tolist()
-    outputs_reason = transform_embedding(query['reason'])
-    query_reason_embedding = outputs_reason['pooler_output'][0].tolist()
+
+    query_reason_embedding = transform_embedding(query['reason'])['pooler_output'][0].tolist()
+
+    # parse new reason by sections of law
+    new_reason = set(query['reason'])
+    query_new_reason_embedding = None
+    for reason in new_reason:
+        if query_new_reason_embedding is None:
+            query_new_reason_embedding = transform_embedding(reason)['pooler_output'][0].tolist()
+        else:
+            query_new_reason_embedding = [sum(x) for x in zip(query_new_reason_embedding, transform_embedding(reason)['pooler_output'][0].tolist())]
 
     with open('train_bert.pickle', 'rb') as f:
         trained_embeddings = pickle.load(f)
 
     similarity_index = {}
     for no, trained_embedding in trained_embeddings.items():
-        similarity_truth = 1 - spatial.distance.cosine(query_truth_embedding, trained_embedding[1])
+        similarity_truth = 1 - spatial.distance.cosine(query_truth_embedding, trained_embedding[2])
+        similarity_new_reason = 1 - spatial.distance.cosine(query_new_reason_embedding, trained_embedding[1])
         similarity_reason = 1 - spatial.distance.cosine(query_reason_embedding, trained_embedding[0])
-        similarity_index[no] = (similarity_truth + similarity_reason)
+        similarity_index[no] = (similarity_truth + similarity_new_reason + similarity_reason)
     
     similarity_index = dict(sorted(similarity_index.items(), key=lambda item: item[1], reverse=True))
 
@@ -142,6 +163,7 @@ def recommend_similar(train, test):
         query = {
             'no': test['no'][idx],
             'reason': test['reason'][idx],
+            'new_reason': literal_eval(test['new_reason'][idx]),
             'issue': literal_eval(test['new_relatedIssues'][idx]),
             'truth': test['truth'][idx],
             'penalty': test['maxpenalty'][idx],
