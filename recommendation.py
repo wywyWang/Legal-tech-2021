@@ -91,21 +91,18 @@ def using_bert(data, query):
     if not os.path.isfile('train_bert.pickle'):
         train_embedding = {}
         for idx in tqdm(range(len(data))):
-            # # process truth with tfidf results
-            # filter_truth = ''
-            # if idx > 475:
-            #     print(data['no'][idx])
-            #     print(data['truth'][idx])
-            # for word in data['truth'][idx].split(' '):
-            #     if word in data['parse_rank50'][idx]:
-            #         filter_truth += (' ' + word)
-            #     else:
-            #         filter_truth += (' ' + '<UNK>')
+            # process truth with tfidf results
+            filter_truth = ''
+            for word in data['truth'][idx].split(' '):
+                if word in data['parse_rank30'][idx]:
+                    filter_truth += (' ' + word)
+                else:
+                    filter_truth += (' ' + '<UNK>')
 
-            if len(data['truth'][idx]) >= max_length:
-                truth = data['truth'][idx][:max_length]
+            if len(filter_truth) >= max_length:
+                truth = filter_truth[:max_length]
             else:
-                truth = data['truth'][idx]
+                truth = filter_truth
             outputs_truth = transform_embedding(truth)['pooler_output'][0].tolist()
 
             outputs_reason = transform_embedding(data['reason'][idx])['pooler_output'][0].tolist()
@@ -127,16 +124,16 @@ def using_bert(data, query):
 
     top_k = query['TOPK']
 
-    # # get query embedding from BERT
-    # query_filter_truth = ''
-    # for word in query['truth'].split(' '):
-    #     if word in query['parse_rank']:
-    #         query_filter_truth += (' ' + word)
-    #     else:
-    #         query_filter_truth += (' ' + '<UNK>')
-    if len(query['truth']) >= max_length:
-        query['truth'] = query['truth'][:max_length]
-    outputs_truth = transform_embedding(query['truth'])
+    # get query embedding from BERT
+    query_filter_truth = ''
+    for word in query['truth'].split(' '):
+        if word in query['parse_rank']:
+            query_filter_truth += (' ' + word)
+        else:
+            query_filter_truth += (' ' + '<UNK>')
+    if len(query_filter_truth) >= max_length:
+        query_filter_truth = query_filter_truth[:max_length]
+    outputs_truth = transform_embedding(query_filter_truth)
     query_truth_embedding = outputs_truth['pooler_output'][0].tolist()
 
     query_reason_embedding = transform_embedding(query['reason'])['pooler_output'][0].tolist()
@@ -203,7 +200,7 @@ def recommend_similar(train, test):
             'issue': literal_eval(test['new_relatedIssues'][idx]),
             'truth': test['truth'][idx],
             'penalty': test['maxpenalty'][idx],
-            # 'parse_rank': test['parse_rank50'][idx],
+            'parse_rank': test['parse_rank30'][idx],
             'TOPK': config['TOPK']
         }
 
