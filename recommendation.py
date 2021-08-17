@@ -190,6 +190,9 @@ def using_bert(data, query):
 
 
 def recommend_similar(train, test):
+    record = open('record.csv', 'w')
+    record.write('predict,true,mae')
+    record.write('\n')
     y_true, y_pred = [], []
     for idx in tqdm(range(len(test))):
         query = {
@@ -208,10 +211,14 @@ def recommend_similar(train, test):
         matches = using_bert(train, query)
 
         if len(matches) != 0:
-            y_pred.append(sum(matches['maxpenalty']) / len(matches['maxpenalty']))
+            predict = sum(matches['maxpenalty']) / len(matches['maxpenalty'])
         else:
-            y_pred.append(0)
+            predict = 0
+        y_pred.append(predict)
         y_true.append(query['penalty'])
+
+        record.write(query['no'] + '_' + query['court'] + ',' + str(predict) + ',' + str(query['penalty']) + ',' + str(mean_absolute_error([predict], [query['penalty']])))
+        record.write('\n')
 
     mae = mean_absolute_error(y_true, y_pred)
     print("MAE : {}".format(mae))
