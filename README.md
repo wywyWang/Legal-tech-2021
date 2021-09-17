@@ -1,5 +1,5 @@
 # Legal-tech-2021
-Our project **National Judges: Miss JuBERT** won the 3rd Place and National Judges Award in [Legal-tech Hackathon 2021](https://hackathon.lawsnote.com/).
+Our project **National Judges: Miss JuBERT** won the 3rd Place and National Judges Award in [Legal-tech Hackathon 2021](https://hackathon.lawsnote.com/). Presentation slides can be seen at [link](https://drive.google.com/file/d/15SJCkzFskRitCXg_4Yh8Vq0-R8b0QBIu/view?usp=sharing).
 
 ## Prepare
 ### Install Environment
