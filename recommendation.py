@@ -16,14 +16,6 @@ def get_argument():
                         type=str,
                         required=True,
                         help="filename of data")
-    opt.add_argument("--reason",
-                        type=str,
-                        required=True,
-                        help="query reason")
-    opt.add_argument("--issue",
-                        type=str,
-                        required=True,
-                        help="query related issues")
     opt.add_argument("--TOPK",
                         type=int,
                         required=True,
@@ -152,10 +144,16 @@ def using_bert(data, query):
 
     same_issue_count = {}
     for idx in range(len(data)):
+        appear_before = []
         related_issues = literal_eval(data['relatedIssues'][idx])
 
         same_count = 0
         for query_law in query['issue']:
+            check_appearence = query_law['lawName'] + ' ' + query_law['issueRef']
+            if check_appearence in appear_before:
+                continue
+            else:
+                appear_before.append(check_appearence)
             for data_law in related_issues:
                 if query_law['lawName'] == data_law['lawName'] and query_law['issueRef'] == data_law['issueRef']:
                     same_count += 1

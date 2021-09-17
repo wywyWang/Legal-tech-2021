@@ -376,12 +376,6 @@ def filter_truth(filename):
                     match = process_text
                 else:
                     match = process_text
-
-                    print(idx)
-                    print(process_text)
-                    print(search_condition)
-                    1/0
-
                     not_match_count += 1
             else:
                 match = process_text[search_condition.start():search_condition.end()]
