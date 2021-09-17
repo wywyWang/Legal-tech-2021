@@ -29,6 +29,7 @@ python recommendation.py --filename $1 --TOPK $2
 Note that you should modify function in `recommend_similar` to specify what mode you want to test.
 
 ## Contributors
+Our team is composed of Wei-Wei Du, Wei-Yao Wang, Li June Wei, Yi-Han Yang.
 Part of the codes are contributed from [Wei-Wei Du](https://github.com/wwweiwei).
 
 ## Citation and Contact
