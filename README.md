@@ -33,5 +33,5 @@ Our team is composed of Wei-Wei Du, Wei-Yao Wang, Li June Wei, Yi-Han Yang.
 Part of the codes are contributed from [Wei-Wei Du](https://github.com/wwweiwei).
 
 ## Citation and Contact
-If you found this useful, please give us stars!
+If you find this useful, please give us stars!
 If you have any question, please send to *sf1638.cs05@nctu.edu.tw*.
