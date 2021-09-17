@@ -1,4 +1,5 @@
 # Legal-tech-2021
+Our project **National Judges: Miss JuBERT** won the 3rd Place and National Judges Award in [Legal-tech Hackathon 2021](https://hackathon.lawsnote.com/).
 
 ## Prepare
 ### Install Environment
@@ -26,3 +27,10 @@ Note that you should modify processing function to corresponding needs.
 python recommendation.py --filename $1 --TOPK $2
 ```
 Note that you should modify function in `recommend_similar` to specify what mode you want to test.
+
+## Contributors
+Part of the codes are contributed from [Wei-Wei Du](https://github.com/wwweiwei).
+
+## Citation and Contact
+If you found this useful, please give us stars!
+If you have any question, please send to *sf1638.cs05@nctu.edu.tw*.
